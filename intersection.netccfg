@@ -1,0 +1,9 @@
+<configuration>
+  <input>
+    <node-files value="nodes.nod.xml"/>
+    <edge-files value="edges.edg.xml"/>
+  </input>
+  <output>
+    <net-file value="intersection.net.xml"/>
+  </output>
+</configuration>

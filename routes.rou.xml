@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<routes>
+    <!-- Define vehicle type -->
+    <vType id="car" accel="2.6" decel="4.5" sigma="0.5" maxSpeed="13.9" length="5.0"/>
+
+    <!-- North→South -->
+    <route id="f_north_south" edges="N2C C2S"/>
+    <vehicle id="veh0" type="car" route="f_north_south" depart="0"/>
+
+    <!-- South→North -->
+    <route id="f_south_north" edges="S2C C2N"/>
+    <vehicle id="veh1" type="car" route="f_south_north" depart="2"/>
+
+    <!-- East→West -->
+    <route id="f_east_west" edges="E2C C2W"/>
+    <vehicle id="veh2" type="car" route="f_east_west" depart="4"/>
+
+    <!-- West→East -->
+    <route id="f_west_east" edges="W2C C2E"/>
+    <vehicle id="veh3" type="car" route="f_west_east" depart="6"/>
+</routes>

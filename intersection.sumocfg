@@ -1,0 +1,20 @@
+<configuration>
+  <input>
+    <net-file value="intersection.net.xml"/>
+    <route-files value="routes.rou.xml"/>
+    <begin value="0"/>
+    <end value="3600"/>
+  </input>
+  <time>
+    <step-length value="1.0"/>
+  </time>
+  <trafficlights>
+    <tlLogic id="C" programID="0" offset="0">
+      <!-- Default phases: 0=NS green, 1=All red, 2=EW green, 3=All red -->
+      <phase duration="10" state="GrGr"/>
+      <phase duration="2" state="yryr"/>
+      <phase duration="10" state="rGrG"/>
+      <phase duration="2" state="ryry"/>
+    </tlLogic>
+  </trafficlights>
+</configuration>

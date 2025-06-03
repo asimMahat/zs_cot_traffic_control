@@ -1,0 +1,14 @@
+<edges>
+    <!-- From N to center, then center to S -->
+    <edge id="N2C" from="N" to="C" priority="1" numLanes="1" speed="13.9"/>
+    <edge id="C2S" from="C" to="S" priority="1" numLanes="1" speed="13.9"/>
+    <!-- From S to center, then center to N -->
+    <edge id="S2C" from="S" to="C" priority="1" numLanes="1" speed="13.9"/>
+    <edge id="C2N" from="C" to="N" priority="1" numLanes="1" speed="13.9"/>
+    <!-- From E to center, then center to W -->
+    <edge id="E2C" from="E" to="C" priority="1" numLanes="1" speed="13.9"/>
+    <edge id="C2W" from="C" to="W" priority="1" numLanes="1" speed="13.9"/>
+    <!-- From W to center, then center to E -->
+    <edge id="W2C" from="W" to="C" priority="1" numLanes="1" speed="13.9"/>
+    <edge id="C2E" from="C" to="E" priority="1" numLanes="1" speed="13.9"/>
+</edges>
