@@ -10,4 +10,3 @@ models = openai.models.list()
 print("Available model IDs:")
 for m in models.data:
     print(" •", m.id)
-

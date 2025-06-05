@@ -1,21 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <routes>
-    <!-- Define vehicle type -->
+    <!--
+      Define a generic car type. Adjust parameters (accel, decel, maxSpeed, length) as desired.
+    -->
     <vType id="car" accel="2.6" decel="4.5" sigma="0.5" maxSpeed="13.9" length="5.0"/>
 
-    <!-- North→South -->
-    <route id="f_north_south" edges="N2C C2S"/>
-    <vehicle id="veh0" type="car" route="f_north_south" depart="0"/>
+    <!--
+      Define four routes through the intersection:
+        • NS: North → Center → South
+        • SN: South → Center → North
+        • EW: East  → Center → West
+        • WE: West  → Center → East
+      These edge IDs must match exactly what you used in edges.edg.xml (and thus in intersection.net.xml):
+      N2C, C2S, S2C, C2N, E2C, C2W, W2C, C2E
+    -->
+    <route id="NS" edges="N2C C2S"/>
+    <route id="SN" edges="S2C C2N"/>
+    <route id="EW" edges="E2C C2W"/>
+    <route id="WE" edges="W2C C2E"/>
 
-    <!-- South→North -->
-    <route id="f_south_north" edges="S2C C2N"/>
-    <vehicle id="veh1" type="car" route="f_south_north" depart="2"/>
-
-    <!-- East→West -->
-    <route id="f_east_west" edges="E2C C2W"/>
-    <vehicle id="veh2" type="car" route="f_east_west" depart="4"/>
-
-    <!-- West→East -->
-    <route id="f_west_east" edges="W2C C2E"/>
-    <vehicle id="veh3" type="car" route="f_west_east" depart="6"/>
+    <!--
+      Define a “flow” of cars on each route. Each flow generates a total of 50 vehicles
+      uniformly between time=0 and time=300 seconds. Feel free to tweak the “number”
+      (how many cars) or “end” (how long to keep spawning).
+    -->
+    <flow id="flow_NS" route="NS" type="car" begin="0" end="300" number="50"/>
+    <flow id="flow_SN" route="SN" type="car" begin="0" end="300" number="50"/>
+    <flow id="flow_EW" route="EW" type="car" begin="0" end="300" number="50"/>
+    <flow id="flow_WE" route="WE" type="car" begin="0" end="300" number="50"/>
 </routes>
+
