@@ -2,15 +2,16 @@
 
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM, GenerationConfig
+from model_manager import ModelType, get_model_config, format_prompt
+import re
 
 class LocalLLM:
     """
-    A simple wrapper around 'tiiuae/falcon-rw-1b' that loads the entire model
-    into CPU (or GPU) memory without offloading to disk, and chooses sampling vs.
-    greedy decoding based on temperature.
+    A wrapper around various LLM models that loads the model into CPU (or GPU) memory
+    and handles chat formatting for different model types.
     Usage:
         llm = LocalLLM(
-            model_name="tiiuae/falcon-rw-1b",
+            model_type=ModelType.LLAMA,  # or any other model type
             device="cpu",              # or "cuda" if you have a GPU
             max_new_tokens=128,
             temperature=0.0            # deterministic, greedy decoding
@@ -20,7 +21,7 @@ class LocalLLM:
 
     def __init__(
         self,
-        model_name: str = "tiiuae/falcon-rw-1b",
+        model_type: ModelType,
         device: str = None,
         max_new_tokens: int = 128,
         temperature: float = 0.7,
@@ -30,61 +31,60 @@ class LocalLLM:
             self.device = "cuda" if torch.cuda.is_available() else "cpu"
         else:
             self.device = device
+        self.model_type = model_type
+        # Get model configuration
+        self.model_config = get_model_config(model_type)
+        model_name = self.model_config.model_id
+
+        print(f"Loading model: {self.model_config.name}")
+        print(f"Model ID: {model_name}")
+        print(f"Using device: {self.device}")
 
         # Load tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True)
-        if self.tokenizer.pad_token_id is None:
-            self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
+        if self.tokenizer.pad_token is None:
+            self.tokenizer.pad_token = self.tokenizer.eos_token
 
-        # Load model fully into memory (no offloading). We use float16 on GPU, float32 on CPU.
-        dtype = torch.float16 if (self.device.startswith("cuda")) else torch.float32
+        # Load model with appropriate settings
         self.model = AutoModelForCausalLM.from_pretrained(
             model_name,
-            torch_dtype=dtype,
-            low_cpu_mem_usage=False,
+            device_map="auto",
+            torch_dtype=torch.float16 if self.device.startswith("cuda") else torch.float32,
+            load_in_8bit=False,  # Set to True if you want quantization and have bitsandbytes
         )
-        if self.device.startswith("cuda"):
-            self.model = self.model.to(self.device)
 
         self.max_new_tokens = max_new_tokens
         self.temperature = temperature
 
-        # If temperature == 0.0, use greedy (do_sample=False). Otherwise, sample.
-        do_sample_flag = False if (self.temperature == 0.0) else True
+        # Build generation config
         self.gen_config = GenerationConfig(
-            temperature=self.temperature if (self.temperature > 0.0) else 1.0,
+            temperature=self.temperature,
             top_p=0.95,
-            do_sample=do_sample_flag,
+            do_sample=True if self.temperature > 0 else False,
+            pad_token_id=self.tokenizer.eos_token_id,
+            eos_token_id=self.tokenizer.eos_token_id,
         )
+
+        print("Model loaded successfully!")
 
     def _build_prompt(self, system_msg: str, user_msg: str) -> str:
         """
-        Construct a simple prompt for Falcon RW:
-        [SYSTEM]: <system_msg>
-        [USER]: <user_msg>
-        [ASSISTANT]:
+        Build prompt using the model's specific format.
         """
-        system_msg = system_msg.strip()
-        user_msg = user_msg.strip()
-        prompt = (
-            f"[SYSTEM]: {system_msg}\n"
-            f"[USER]: {user_msg}\n"
-            f"[ASSISTANT]:"
-        )
-        return prompt
+        return format_prompt(self.model_type, system_msg, user_msg)
 
     def query(self, system_msg: str, user_msg: str) -> str:
         """
-        Send (system_msg + user_msg) as a prompt to Falcon RW and
-        return everything it generates after “[ASSISTANT]:”.
+        Send (system_msg + user_msg) as a prompt to the model and
+        return the generated response.
         """
         prompt = self._build_prompt(system_msg, user_msg)
-
-        # Tokenize the prompt
+        
+        # Tokenize input
         inputs = self.tokenizer(prompt, return_tensors="pt")
         inputs = inputs.to(self.model.device)
 
-        # Generate continuation
+        # Generate response
         with torch.no_grad():
             output_ids = self.model.generate(
                 **inputs,
@@ -92,15 +92,20 @@ class LocalLLM:
                 max_new_tokens=self.max_new_tokens,
                 pad_token_id=self.tokenizer.eos_token_id,
             )
-
-        # Decode the entire sequence: prompt + generated tokens (including “[ASSISTANT]:”)
-        decoded = self.tokenizer.decode(output_ids[0], skip_special_tokens=False)
-
-        # Split on “[ASSISTANT]:” and take everything after it as the model’s reply
-        split_token = "[ASSISTANT]:"
-        if split_token in decoded:
-            parts = decoded.rsplit(split_token, 1)
-            return parts[-1].strip()
-        else:
-            # If somehow “[ASSISTANT]:” is missing, return the raw decoded text
-            return decoded.strip()
+        
+        # Decode full output
+        full_output = self.tokenizer.decode(output_ids[0], skip_special_tokens=True)
+        
+        # Extract only the response part based on model type
+        if self.model_type == ModelType.FALCON:
+            if "[ASSISTANT]:" in full_output:
+                response = full_output.split("[ASSISTANT]:", 1)[-1].strip()
+            else:
+                response = full_output[len(prompt):].strip()
+        else:  # For Mistral, Llama, Phi, TinyLlama
+            if "[/INST]" in full_output:
+                response = full_output.split("[/INST]", 1)[-1].strip()
+            else:
+                response = full_output[len(prompt):].strip()
+            
+        return response

@@ -7,7 +7,22 @@
   </input>
   <time>
     <begin value="0"/>
-    <end   value="1000"/>
+    <end value="1000"/>
     <step-length value="1.0"/>
   </time>
+  <processing>
+    <time-to-teleport value="-1"/>
+    <ignore-junction-blocker value="0"/>
+    <collision.action value="warn"/>
+    <collision.stoptime value="0"/>
+    <collision.check-junctions value="false"/>
+  </processing>
+  <report>
+    <verbose value="false"/>
+    <no-step-log value="true"/>
+  </report>
+  <gui_only>
+    <gui-settings-file value=""/>
+    <start value="false"/>
+  </gui_only>
 </configuration>

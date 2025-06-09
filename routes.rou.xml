@@ -1,9 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <routes>
     <!--
-      Define a generic car type. Adjust parameters (accel, decel, maxSpeed, length) as desired.
+      Define a generic car type with highly optimized parameters for maximum performance
     -->
-    <vType id="car" accel="2.6" decel="4.5" sigma="0.5" maxSpeed="13.9" length="5.0"/>
+    <vType id="car" 
+           accel="2.6" 
+           decel="4.5" 
+           sigma="0.5" 
+           maxSpeed="13.9" 
+           length="5.0" 
+           minGap="2.5" 
+           tau="1.0"
+           speedDev="0.1"
+           speedFactor="1.1"
+           lcSpeedGain="1.0"
+           lcKeepRight="1.0"/>
 
     <!--
       Define four routes through the intersection:
@@ -20,13 +31,11 @@
     <route id="WE" edges="W2C C2E"/>
 
     <!--
-      Define a “flow” of cars on each route. Each flow generates a total of 50 vehicles
-      uniformly between time=0 and time=300 seconds. Feel free to tweak the “number”
-      (how many cars) or “end” (how long to keep spawning).
+      Reduced number of vehicles and adjusted timing for better performance
     -->
-    <flow id="flow_NS" route="NS" type="car" begin="0" end="300" number="50"/>
-    <flow id="flow_SN" route="SN" type="car" begin="0" end="300" number="50"/>
-    <flow id="flow_EW" route="EW" type="car" begin="0" end="300" number="50"/>
-    <flow id="flow_WE" route="WE" type="car" begin="0" end="300" number="50"/>
+    <flow id="flow_NS" route="NS" type="car" begin="0" end="300" number="25"/>
+    <flow id="flow_SN" route="SN" type="car" begin="0" end="300" number="25"/>
+    <flow id="flow_EW" route="EW" type="car" begin="0" end="300" number="25"/>
+    <flow id="flow_WE" route="WE" type="car" begin="0" end="300" number="25"/>
 </routes>
 

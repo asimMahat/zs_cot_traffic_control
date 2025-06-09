@@ -1,18 +1,28 @@
 import time
 import sys
 import os
-import traci
-from model_manager import ModelType, get_available_models
-from actor_agent import ActorAgent
+
+# Ensure SUMO is properly configured
+if 'SUMO_HOME' not in os.environ:
+    print("Warning: SUMO_HOME environment variable not set")
+
+# Import traci with error handling
+try:
+    import traci
+    print("TraCI imported successfully")
+except ImportError as e:
+    print(f"Error importing TraCI: {e}")
+    print("Please ensure SUMO is properly installed and SUMO_HOME is set")
+    sys.exit(1)
 
 class FastRuleAgent:
     def decide_phase(self, state):
         ns = state["N"] + state["S"]
         ew = state["E"] + state["W"]
         if ns >= ew:
-            return "GREEN_NORTH_SOUTH", 10
+            return "GREEN_NORTH_SOUTH", 20
         else:
-            return "GREEN_EAST_WEST", 10
+            return "GREEN_EAST_WEST", 20
 
 def get_current_state():
     N_queue = traci.edge.getLastStepVehicleNumber("N2C")
@@ -31,32 +41,8 @@ def apply_phase(phase: str, duration: int):
         traci.simulationStep()
         time.sleep(0.3)
 
-def select_model() -> ModelType:
-    """Allow user to select a model from available options."""
-    available_models = get_available_models()
-    
-    print("\nAvailable Models:")
-    for i, (name, _) in enumerate(available_models.items(), 1):
-        print(f"{i}. {name}")
-    
-    while True:
-        try:
-            choice = int(input("\nSelect a model (enter number): "))
-            if 1 <= choice <= len(available_models):
-                model_name = list(available_models.keys())[choice - 1]
-                return available_models[model_name]
-            else:
-                print(f"Please enter a number between 1 and {len(available_models)}")
-        except ValueError:
-            print("Please enter a valid number")
-
 def run():
-    # Let user select the model
-    model_type = select_model()
-    print(f"\nSelected model: {model_type.name}")
-    
-    # Initialize the agent with the selected model
-    agent = ActorAgent(model_type=model_type, device="cpu")
+    agent = FastRuleAgent()
 
     # Check if SUMO is in PATH, otherwise try common installation paths
     sumo_binary = "sumo-gui"
@@ -98,21 +84,11 @@ def run():
         print(f"Starting SUMO with command: {' '.join(sumo_cmd)}")
         traci.start(sumo_cmd)
         
-        step = 0
-        phase = "GREEN_NORTH_SOUTH"
-        duration = 0
         while traci.simulation.getMinExpectedNumber() > 0:
-            if duration == 0:
-                state = get_current_state()
-                phase, duration = agent.decide_phase(state)
-                # Set the phase in SUMO
-                if phase == "GREEN_NORTH_SOUTH":
-                    traci.trafficlight.setPhase("C", 0)
-                else:
-                    traci.trafficlight.setPhase("C", 1)
-            traci.simulationStep()
-            duration -= 1
-            step += 1
+            state = get_current_state()
+            phase, duration = agent.decide_phase(state)
+            apply_phase(phase, duration)
+
         traci.close()
         print("Simulation completed successfully.")
         
@@ -131,4 +107,4 @@ def run():
             pass
 
 if __name__ == "__main__":
-    run()
+    run() 

@@ -2,28 +2,32 @@
 
 import re
 from local_llm import LocalLLM
+from model_manager import ModelType
 
 class ActorAgent:
     """
-    Zero‐Shot Chain‐of‐Thought “actor” agent using Falcon-RW-1B (or another LLM).
+    Zero‐Shot Chain‐of‐Thought "actor" agent using various LLM models.
     The agent decides between two phases: GREEN_NORTH_SOUTH or GREEN_EAST_WEST,
     based on current queue lengths and a starvation‐avoidance rule.
     """
 
     def __init__(
         self,
-        model_name: str = "tiiuae/falcon-rw-1b",
+        model_type: ModelType = ModelType.FALCON,
         device: str = None,
         starvation_threshold: int = 20,
     ):
-        # Initialize the LocalLLM (Falcon-RW-1B or similar)
-        self.llm = LocalLLM(model_name=model_name, device=device)
+        # Initialize the LocalLLM with the specified model type
+        self.llm = LocalLLM(model_type=model_type, device=device)
+        self.model_type = model_type
 
         # Few‐shot system prompt with placeholders for {N}, {E}, {S}, {W}, {EW_waited}
         self.system_template = (
-            "You are an expert traffic engineer. Always output exactly:\n"
+            "You are an expert traffic engineer. Output ONLY:\n"
             "    <PHASE> <DURATION>\n"
             "Valid phases: GREEN_NORTH_SOUTH or GREEN_EAST_WEST.\n\n"
+            "IMPORTANT: Output ONLY the phase and duration, e.g. GREEN_NORTH_SOUTH 10\n"
+            "Do NOT explain. Do NOT add any extra text.\n\n"
             "Examples:\n"
             "  State: N=4, E=4, S=4, W=4 → GREEN_NORTH_SOUTH 10  (tie broken to N‐S)\n"
             "  State: N=5, E=6, S=5, W=6 → GREEN_EAST_WEST 15  (EW > NS)\n"
@@ -68,9 +72,9 @@ class ActorAgent:
         raw_reply = self.llm.query(prompt, "")
         print(f">>> LLM raw reply: '{raw_reply}'")
 
-        # 3) Parse the LLM’s response as "<PHASE> <DURATION>"
-        pattern = r"^(GREEN_NORTH_SOUTH|GREEN_EAST_WEST)\s+(\d+)"
-        match = re.search(pattern, raw_reply.strip())
+        # 3) Parse the LLM's response as "<PHASE> <DURATION>"
+        pattern = r"(GREEN_NORTH_SOUTH|GREEN_EAST_WEST)\s+(\d+)"
+        match = re.search(pattern, raw_reply)
         if match:
             phase = match.group(1)
             duration = int(match.group(2))

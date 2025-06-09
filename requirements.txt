@@ -1,3 +1,7 @@
 traci
 sumolib
 openai
+torch
+transformers
+accelerate
+sentencepiece
