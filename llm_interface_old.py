@@ -1,23 +1,3 @@
-# import os
-# import openai
-
-# class LLMInterface:
-#     def __init__(self, model: str = 'gpt-4'):
-#         openai.api_key = os.getenv('OPENAI_API_KEY')
-#         self.model = model
-
-#     def query(self, system_prompt: str, user_prompt: str) -> str:
-#         response = openai.ChatCompletion.create(
-#             model=self.model,
-#             messages=[
-#                 {'role': 'system', 'content': system_prompt},
-#                 {'role': 'user', 'content': user_prompt}
-#             ]
-#         )
-#         return response.choices[0].message['content']
-
-
-
 # llm_interface.py (updated for openai>=1.0.0)
 import os
 import openai

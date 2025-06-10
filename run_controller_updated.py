@@ -29,7 +29,6 @@ def apply_phase(phase: str, duration: int):
         traci.trafficlight.setPhase(tls_id, 1)
     for _ in range(duration):
         traci.simulationStep()
-        time.sleep(0.3)
 
 def select_model() -> ModelType:
     """Allow user to select a model from available options."""
