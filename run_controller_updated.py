@@ -55,7 +55,11 @@ def run():
     print(f"\nSelected model: {model_type.name}")
     
     # Initialize the agent with the selected model
-    agent = ActorAgent(model_type=model_type, device="cpu")
+    agent = ActorAgent(
+        model_type=model_type,
+        device="cpu",
+        fixed_duration=20        # Fixed duration for each phase
+    )
 
     # Check if SUMO is in PATH, otherwise try common installation paths
     sumo_binary = "sumo-gui"
@@ -100,6 +104,7 @@ def run():
         step = 0
         phase = "GREEN_NORTH_SOUTH"
         duration = 0
+        
         while traci.simulation.getMinExpectedNumber() > 0:
             if duration == 0:
                 state = get_current_state()
@@ -109,21 +114,19 @@ def run():
                     traci.trafficlight.setPhase("C", 0)
                 else:
                     traci.trafficlight.setPhase("C", 1)
+            
             traci.simulationStep()
             duration -= 1
             step += 1
-        traci.close()
+            
         print("Simulation completed successfully.")
         
     except traci.exceptions.FatalTraCIError as e:
         print(f"TraCI Fatal Error: {e}")
         print("This usually means SUMO couldn't start or the configuration is invalid.")
-        try:
-            traci.close()
-        except:
-            pass
     except Exception as e:
         print("Error during SUMO/TraCI loop:", e)
+    finally:
         try:
             traci.close()
         except:

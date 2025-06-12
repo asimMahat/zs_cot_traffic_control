@@ -16,24 +16,26 @@ class ActorAgent:
         model_type: ModelType = ModelType.FALCON,
         device: str = None,
         starvation_threshold: int = 20,
+        fixed_duration: int = 20,       # Fixed duration for each phase
     ):
-        # Initialize the LocalLLM with the specified model type
-        self.llm = LocalLLM(model_type=model_type, device=device)
+        # Initialize the LocalLLM with the specified model type using singleton pattern
+        self.llm = LocalLLM.get_instance(model_type=model_type, device=device)
         self.model_type = model_type
+        self.fixed_duration = fixed_duration
 
         # Few‐shot system prompt with placeholders for {N}, {E}, {S}, {W}, {EW_waited}
         self.system_template = (
             "You are an expert traffic engineer. Output ONLY:\n"
             "    <PHASE> <DURATION>\n"
             "Valid phases: GREEN_NORTH_SOUTH or GREEN_EAST_WEST.\n\n"
-            "IMPORTANT: Output ONLY the phase and duration, e.g. GREEN_NORTH_SOUTH 10\n"
+            "IMPORTANT: Output ONLY the phase and duration, e.g. GREEN_NORTH_SOUTH 20\n"
             "Do NOT explain. Do NOT add any extra text.\n\n"
             "Examples:\n"
-            "  State: N=4, E=4, S=4, W=4 → GREEN_NORTH_SOUTH 10  (tie broken to N‐S)\n"
-            "  State: N=5, E=6, S=5, W=6 → GREEN_EAST_WEST 15  (EW > NS)\n"
+            "  State: N=4, E=4, S=4, W=4 → GREEN_NORTH_SOUTH 20  (tie broken to N‐S)\n"
+            "  State: N=5, E=6, S=5, W=6 → GREEN_EAST_WEST 20  (EW > NS)\n"
             "  State: N=2, E=10, S=2, W=1 → GREEN_EAST_WEST 20  (EW >> NS)\n"
-            "  State: N=8, E=7, S=8, W=7 → GREEN_NORTH_SOUTH 12  (NS > EW)\n"
-            "  State: N=5, E=5, S=5, W=5, EW_waited=20 → GREEN_EAST_WEST 10  (forced by starvation)\n"
+            "  State: N=8, E=7, S=8, W=7 → GREEN_NORTH_SOUTH 20  (NS > EW)\n"
+            "  State: N=5, E=5, S=5, W=5, EW_waited=20 → GREEN_EAST_WEST 20  (forced by starvation)\n"
             "\n"
             "Now given the current state, choose phase.\n"
             "State: N={N}, E={E}, S={S}, W={W}, EW_waited={EW_waited} →"
@@ -45,9 +47,8 @@ class ActorAgent:
 
     def decide_phase(self, state: dict) -> tuple[str, int]:
         """
-        Given a state dict like {"N": int, "E": int, "S": int, "W": int},
-        build a few‐shot prompt, query the LLM, then possibly override if
-        E–W has been starved too long. Returns (phase, duration).
+        Given a state dict, use LLM to decide the next phase.
+        Returns (phase, duration).
         """
         N = state.get("N", 0)
         E = state.get("E", 0)
@@ -58,36 +59,30 @@ class ActorAgent:
         # 1) Starvation override: if E–W has waited ≥ threshold, force it now
         if EW_waited >= self.starvation_threshold:
             self.ew_starvation_timer = 0
-            forced_duration = 10
-            print(f">>> Starvation‐break: forcing GREEN_EAST_WEST {forced_duration}s")
-            return "GREEN_EAST_WEST", forced_duration
+            print(f">>> Starvation‐break: forcing GREEN_EAST_WEST {self.fixed_duration}s")
+            return "GREEN_EAST_WEST", self.fixed_duration
 
-        # 2) Otherwise, format the few‐shot prompt with current values
+        # 2) Use LLM for decision
         prompt = self.system_template.format(
             N=N, E=E, S=S, W=W, EW_waited=EW_waited
         )
         print(f">>> Full prompt sent to LLM:\n{prompt}\n")
 
-        # Query the LLM; second argument unused, all instructions are in prompt
         raw_reply = self.llm.query(prompt, "")
         print(f">>> LLM raw reply: '{raw_reply}'")
 
-        # 3) Parse the LLM's response as "<PHASE> <DURATION>"
         pattern = r"(GREEN_NORTH_SOUTH|GREEN_EAST_WEST)\s+(\d+)"
         match = re.search(pattern, raw_reply)
         if match:
             phase = match.group(1)
-            duration = int(match.group(2))
         else:
-            # Fallback if parsing fails: default to N–S for 10s
             phase = "GREEN_NORTH_SOUTH"
-            duration = 10
-            print(f">>> Failed to parse LLM reply, defaulting to {phase} {duration}s")
+            print(f">>> Failed to parse LLM reply, defaulting to {phase}")
 
-        # 4) Update starvation timer: add duration if N–S chosen, reset if E–W chosen
+        # Update starvation timer
         if phase == "GREEN_NORTH_SOUTH":
-            self.ew_starvation_timer += duration
+            self.ew_starvation_timer += self.fixed_duration
         else:  # GREEN_EAST_WEST
             self.ew_starvation_timer = 0
 
-        return phase, duration
+        return phase, self.fixed_duration
