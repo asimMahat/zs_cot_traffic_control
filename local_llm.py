@@ -10,7 +10,7 @@ class LocalLLM:
     A wrapper around various LLM models that loads the model into CPU (or GPU) memory
     and handles chat formatting for different model types.
     Usage:
-        llm = LocalLLM(
+        llm = LocalLLM.get_instance(
             model_type=ModelType.LLAMA,  # or any other model type
             device="cpu",              # or "cuda" if you have a GPU
             max_new_tokens=128,
@@ -18,6 +18,16 @@ class LocalLLM:
         )
         reply = llm.query(system_msg, user_msg)
     """
+    
+    _instance = None
+    _initialized = False
+
+    @classmethod
+    def get_instance(cls, model_type: ModelType, device: str = None, max_new_tokens: int = 128, temperature: float = 0.7):
+        """Get or create the singleton instance of LocalLLM."""
+        if cls._instance is None:
+            cls._instance = cls(model_type, device, max_new_tokens, temperature)
+        return cls._instance
 
     def __init__(
         self,
@@ -26,6 +36,9 @@ class LocalLLM:
         max_new_tokens: int = 128,
         temperature: float = 0.7,
     ):
+        if LocalLLM._initialized:
+            return
+            
         # Choose device: if user did not pass one, default to GPU if available, else CPU
         if device is None:
             self.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -65,6 +78,7 @@ class LocalLLM:
             eos_token_id=self.tokenizer.eos_token_id,
         )
 
+        LocalLLM._initialized = True
         print("Model loaded successfully!")
 
     def _build_prompt(self, system_msg: str, user_msg: str) -> str:
