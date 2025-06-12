@@ -1,5 +1,3 @@
-# local_llm.py
-
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM, GenerationConfig
 from model_manager import ModelType, get_model_config, format_prompt
@@ -23,7 +21,7 @@ class LocalLLM:
     _initialized = False
 
     @classmethod
-    def get_instance(cls, model_type: ModelType, device: str = None, max_new_tokens: int = 128, temperature: float = 0.7):
+    def get_instance(cls, model_type: ModelType, device: str = None, max_new_tokens: int = 16, temperature: float = 0.0):
         """Get or create the singleton instance of LocalLLM."""
         if cls._instance is None:
             cls._instance = cls(model_type, device, max_new_tokens, temperature)
@@ -33,8 +31,8 @@ class LocalLLM:
         self,
         model_type: ModelType,
         device: str = None,
-        max_new_tokens: int = 128,
-        temperature: float = 0.7,
+        max_new_tokens: int = 8,
+        temperature: float = 0.0,
     ):
         if LocalLLM._initialized:
             return
