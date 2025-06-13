@@ -20,9 +20,24 @@ class LocalLLM:
     _instance = None
     _initialized = False
 
+    # @classmethod
+    # def get_instance(cls, model_type: ModelType, device: str = None, max_new_tokens: int = 16, temperature: float = 0.0):
+    #     """Get or create the singleton instance of LocalLLM."""
+    #     if cls._instance is None:
+    #         cls._instance = cls(model_type, device, max_new_tokens, temperature)
+    #     return cls._instance
+    
     @classmethod
-    def get_instance(cls, model_type: ModelType, device: str = None, max_new_tokens: int = 16, temperature: float = 0.0):
-        """Get or create the singleton instance of LocalLLM."""
+    def get_instance(cls, model_type: ModelType, device: str = None, max_new_tokens: int = 8, temperature: float = 0.0):
+        """
+        Always create a new instance of LocalLLM.
+        This is best for testing multiple models in a notebook.
+        """
+        return cls(model_type, device, max_new_tokens, temperature)
+
+    @classmethod
+    def get_instance_with_chat_format(cls, model_type: ModelType, device: str = None, max_new_tokens: int = 16, temperature: float = 0.0):
+        """Get or create the singleton instance of LocalLLM with chat format."""
         if cls._instance is None:
             cls._instance = cls(model_type, device, max_new_tokens, temperature)
         return cls._instance
