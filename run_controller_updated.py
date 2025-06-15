@@ -5,14 +5,6 @@ import traci
 from model_manager import ModelType, get_available_models
 from actor_agent import ActorAgent
 
-class FastRuleAgent:
-    def decide_phase(self, state):
-        ns = state["N"] + state["S"]
-        ew = state["E"] + state["W"]
-        if ns >= ew:
-            return "GREEN_NORTH_SOUTH", 10
-        else:
-            return "GREEN_EAST_WEST", 10
 
 def get_current_state():
     N_queue = traci.edge.getLastStepVehicleNumber("N2C")
@@ -22,6 +14,7 @@ def get_current_state():
     return {"N": N_queue, "E": E_queue, "S": S_queue, "W": W_queue}
 
 def apply_phase(phase: str, duration: int):
+    """Apply the given phase for the specified duration."""
     tls_id = "C"
     if phase == "GREEN_NORTH_SOUTH":
         traci.trafficlight.setPhase(tls_id, 0)
@@ -29,6 +22,7 @@ def apply_phase(phase: str, duration: int):
         traci.trafficlight.setPhase(tls_id, 1)
     for _ in range(duration):
         traci.simulationStep()
+        time.sleep(0.3)  # Add delay for smoother visualization
 
 def select_model() -> ModelType:
     """Allow user to select a model from available options."""
@@ -58,7 +52,7 @@ def run():
     agent = ActorAgent(
         model_type=model_type,
         device="cpu",
-        fixed_duration=20        # Fixed duration for each phase
+        fixed_duration=20
     )
 
     # Check if SUMO is in PATH, otherwise try common installation paths
@@ -101,23 +95,10 @@ def run():
         print(f"Starting SUMO with command: {' '.join(sumo_cmd)}")
         traci.start(sumo_cmd)
         
-        step = 0
-        phase = "GREEN_NORTH_SOUTH"
-        duration = 0
-        
         while traci.simulation.getMinExpectedNumber() > 0:
-            if duration == 0:
-                state = get_current_state()
-                phase, duration = agent.decide_phase(state)
-                # Set the phase in SUMO
-                if phase == "GREEN_NORTH_SOUTH":
-                    traci.trafficlight.setPhase("C", 0)
-                else:
-                    traci.trafficlight.setPhase("C", 1)
-            
-            traci.simulationStep()
-            duration -= 1
-            step += 1
+            state = get_current_state()
+            phase, duration = agent.decide_phase(state)
+            apply_phase(phase, duration)
             
         print("Simulation completed successfully.")
         
