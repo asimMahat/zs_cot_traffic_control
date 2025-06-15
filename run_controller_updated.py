@@ -5,14 +5,6 @@ import traci
 from model_manager import ModelType, get_available_models
 from actor_agent import ActorAgent
 
-# class FastRuleAgent:
-#     def decide_phase(self, state):
-#         ns = state["N"] + state["S"]
-#         ew = state["E"] + state["W"]
-#         if ns >= ew:
-#             return "GREEN_NORTH_SOUTH", 10
-#         else:
-#             return "GREEN_EAST_WEST", 10
 
 def get_current_state():
     N_queue = traci.edge.getLastStepVehicleNumber("N2C")
@@ -22,6 +14,7 @@ def get_current_state():
     return {"N": N_queue, "E": E_queue, "S": S_queue, "W": W_queue}
 
 def apply_phase(phase: str, duration: int):
+    """Apply the given phase for the specified duration."""
     tls_id = "C"
     if phase == "GREEN_NORTH_SOUTH":
         traci.trafficlight.setPhase(tls_id, 0)
@@ -59,7 +52,7 @@ def run():
     agent = ActorAgent(
         model_type=model_type,
         device="cpu",
-        fixed_duration=20        # Fixed duration for each phase
+        fixed_duration=20
     )
 
     # Check if SUMO is in PATH, otherwise try common installation paths
