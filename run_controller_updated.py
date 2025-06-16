@@ -48,11 +48,13 @@ def run():
     model_type = select_model()
     print(f"\nSelected model: {model_type.name}")
     
-    # Initialize the agent with the selected model
+    # Initialize the agent with the selected model and fallback settings
     agent = ActorAgent(
         model_type=model_type,
         device="cpu",
-        fixed_duration=20
+        fixed_duration=20,        # Fixed duration for each phase
+        max_llm_failures=3,       # Switch to fallback after 3 consecutive failures
+        max_wait_time=60          # Maximum wait time in seconds before forcing a phase change
     )
 
     # Check if SUMO is in PATH, otherwise try common installation paths
@@ -95,12 +97,33 @@ def run():
         print(f"Starting SUMO with command: {' '.join(sumo_cmd)}")
         traci.start(sumo_cmd)
         
+        # Initialize simulation state tracking
+        simulation_time = 0
+        last_phase = None
+        phase_changes = 0
+        
         while traci.simulation.getMinExpectedNumber() > 0:
             state = get_current_state()
             phase, duration = agent.decide_phase(state)
-            apply_phase(phase, duration)
             
-        print("Simulation completed successfully.")
+            # Track phase changes and simulation time
+            if phase != last_phase:
+                phase_changes += 1
+                print(f"\n>>> Phase change #{phase_changes} at time {simulation_time}s")
+                print(f">>> Switching to {phase}")
+                if agent.using_fallback:
+                    print(">>> Using fallback rule-based agent")
+            
+            # Apply the phase and update simulation time
+            apply_phase(phase, duration)
+            simulation_time += duration
+            last_phase = phase
+            
+        print("\nSimulation completed successfully.")
+        print(f"Total simulation time: {simulation_time}s")
+        print(f"Total phase changes: {phase_changes}")
+        if agent.using_fallback:
+            print("Note: System used fallback rule-based agent during simulation")
         
     except traci.exceptions.FatalTraCIError as e:
         print(f"TraCI Fatal Error: {e}")
