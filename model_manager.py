@@ -4,11 +4,7 @@ from enum import Enum
 from typing import Dict, Any
 
 class ModelType(Enum):
-    FALCON = "falcon"
-    MISTRAL = "mistral"
-    LLAMA = "llama"
-    PHI = "phi"
-    TINYLLAMA = "tinyllama"
+    LIGHTGPT = "lightgpt"
 
 class ModelConfig:
     def __init__(self, name: str, model_id: str, prompt_format: str):
@@ -18,29 +14,9 @@ class ModelConfig:
 
 # Model configurations
 MODEL_CONFIGS: Dict[ModelType, ModelConfig] = {
-    ModelType.FALCON: ModelConfig(
-        name="Falcon RW 1B",
-        model_id="tiiuae/falcon-rw-1b",
-        prompt_format="[SYSTEM]: {system_msg}\n[USER]: {user_msg}\n[ASSISTANT]:"
-    ),
-    ModelType.MISTRAL: ModelConfig(
-        name="Mistral 7B",
-        model_id="mistralai/Mistral-7B-Instruct-v0.1",
-        prompt_format="<s>[INST] {system_msg}\n\n{user_msg} [/INST]"
-    ),
-    ModelType.LLAMA: ModelConfig(
-        name="Llama 2 7B",
-        model_id="meta-llama/Llama-2-7b-chat-hf",
-        prompt_format="<s>[INST] <<SYS>>\n{system_msg}\n<</SYS>>\n\n{user_msg} [/INST]"
-    ),
-    ModelType.PHI: ModelConfig(
-        name="Microsoft Phi 1.5",
-        model_id="microsoft/phi-1_5",
-        prompt_format="<s>[INST] {system_msg}\n\n{user_msg} [/INST]"
-    ),
-    ModelType.TINYLLAMA: ModelConfig(
-        name="TinyLlama 1.1B",
-        model_id="TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+    ModelType.LIGHTGPT: ModelConfig(
+        name="LightGPT 0.5B",
+        model_id="lightgpt/LightGPT-0.5B-Qwen2",
         prompt_format="<s>[INST] {system_msg}\n\n{user_msg} [/INST]"
     )
 }

@@ -1,20 +1,11 @@
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM, GenerationConfig
 from model_manager import ModelType, get_model_config, format_prompt
-import re
 
 class LocalLLM:
     """
-    A wrapper around various LLM models that loads the model into CPU (or GPU) memory
-    and handles chat formatting for different model types.
-    Usage:
-        llm = LocalLLM.get_instance(
-            model_type=ModelType.LLAMA,  # or any other model type
-            device="cpu",              # or "cuda" if you have a GPU
-            max_new_tokens=128,
-            temperature=0.0            # deterministic, greedy decoding
-        )
-        reply = llm.query(system_msg, user_msg)
+    A wrapper around the LightGPT model that loads the model into CPU (or GPU) memory
+    and handles chat formatting.
     """
     
     _instance = None
@@ -108,16 +99,10 @@ class LocalLLM:
         # Decode full output
         full_output = self.tokenizer.decode(output_ids[0], skip_special_tokens=True)
         
-        # Extract only the response part based on model type
-        if self.model_type == ModelType.FALCON:
-            if "[ASSISTANT]:" in full_output:
-                response = full_output.split("[ASSISTANT]:", 1)[-1].strip()
-            else:
-                response = full_output[len(prompt):].strip()
-        else:  # For Mistral, Llama, Phi, TinyLlama
-            if "[/INST]" in full_output:
-                response = full_output.split("[/INST]", 1)[-1].strip()
-            else:
-                response = full_output[len(prompt):].strip()
+        # Extract only the response part
+        if "[/INST]" in full_output:
+            response = full_output.split("[/INST]", 1)[-1].strip()
+        else:
+            response = full_output[len(prompt):].strip()
             
         return response

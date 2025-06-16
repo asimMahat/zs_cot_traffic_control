@@ -2,17 +2,9 @@ import time
 import sys
 import os
 import traci
-from model_manager import ModelType, get_available_models
+from model_manager import ModelType
 from actor_agent import ActorAgent
 
-# class FastRuleAgent:
-#     def decide_phase(self, state):
-#         ns = state["N"] + state["S"]
-#         ew = state["E"] + state["W"]
-#         if ns >= ew:
-#             return "GREEN_NORTH_SOUTH", 10
-#         else:
-#             return "GREEN_EAST_WEST", 10
 
 def get_current_state():
     N_queue = traci.edge.getLastStepVehicleNumber("N2C")
@@ -22,6 +14,7 @@ def get_current_state():
     return {"N": N_queue, "E": E_queue, "S": S_queue, "W": W_queue}
 
 def apply_phase(phase: str, duration: int):
+    """Apply the given phase for the specified duration."""
     tls_id = "C"
     if phase == "GREEN_NORTH_SOUTH":
         traci.trafficlight.setPhase(tls_id, 0)
@@ -31,35 +24,12 @@ def apply_phase(phase: str, duration: int):
         traci.simulationStep()
         time.sleep(0.3)  # Add delay for smoother visualization
 
-def select_model() -> ModelType:
-    """Allow user to select a model from available options."""
-    available_models = get_available_models()
-    
-    print("\nAvailable Models:")
-    for i, (name, _) in enumerate(available_models.items(), 1):
-        print(f"{i}. {name}")
-    
-    while True:
-        try:
-            choice = int(input("\nSelect a model (enter number): "))
-            if 1 <= choice <= len(available_models):
-                model_name = list(available_models.keys())[choice - 1]
-                return available_models[model_name]
-            else:
-                print(f"Please enter a number between 1 and {len(available_models)}")
-        except ValueError:
-            print("Please enter a valid number")
-
 def run():
-    # Let user select the model
-    model_type = select_model()
-    print(f"\nSelected model: {model_type.name}")
-    
-    # Initialize the agent with the selected model
+    # Initialize the agent with LightGPT model
     agent = ActorAgent(
-        model_type=model_type,
+        model_type=ModelType.LIGHTGPT,
         device="cpu",
-        fixed_duration=20        # Fixed duration for each phase
+        fixed_duration=20
     )
 
     # Check if SUMO is in PATH, otherwise try common installation paths
