@@ -17,12 +17,20 @@ def apply_phase(phase: str, duration: int):
     """Apply the given phase for the specified duration."""
     tls_id = "C"
     if phase == "GREEN_NORTH_SOUTH":
-        traci.trafficlight.setPhase(tls_id, 0)
-    else:
-        traci.trafficlight.setPhase(tls_id, 1)
+        # If switching from EW to NS, show EW yellow first
+        traci.trafficlight.setPhase(tls_id, 3)  # EW yellow (assuming phase 3 is EW yellow)
+        traci.simulationStep()
+        time.sleep(0.5)  # Short delay for yellow
+        traci.trafficlight.setPhase(tls_id, 0)  # NS green
+    else:  # GREEN_EAST_WEST
+        # If switching from NS to EW, show NS yellow first
+        traci.trafficlight.setPhase(tls_id, 1)  # NS yellow (assuming phase 1 is NS yellow)
+        traci.simulationStep()
+        time.sleep(0.5)  # Short delay for yellow
+        traci.trafficlight.setPhase(tls_id, 2)  # EW green
     for _ in range(duration):
         traci.simulationStep()
-        time.sleep(0.3)  # Add delay for smoother visualization
+        time.sleep(0.3)
 
 def select_model() -> ModelType:
     """Allow user to select a model from available options."""
