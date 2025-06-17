@@ -13,16 +13,29 @@ def get_current_state():
     W_queue = traci.edge.getLastStepVehicleNumber("W2C")
     return {"N": N_queue, "E": E_queue, "S": S_queue, "W": W_queue}
 
-def apply_phase(phase: str, duration: int):
-    """Apply the given phase for the specified duration."""
+def apply_phase(phase: str, duration: int, last_phase: str = None):
+    """Apply the given phase for the specified duration, with yellow light transitions."""
     tls_id = "C"
+    # Insert yellow phase if switching directions
+    if last_phase is not None and phase != last_phase:
+        if phase == "GREEN_NORTH_SOUTH":
+            # Switching to NS: show EW yellow first
+            traci.trafficlight.setPhase(tls_id, 3)  # EW yellow
+            traci.simulationStep()
+            time.sleep(0.5)
+        else:
+            # Switching to EW: show NS yellow first
+            traci.trafficlight.setPhase(tls_id, 1)  # NS yellow
+            traci.simulationStep()
+            time.sleep(0.5)
+    # Set the green phase
     if phase == "GREEN_NORTH_SOUTH":
         traci.trafficlight.setPhase(tls_id, 0)
     else:
-        traci.trafficlight.setPhase(tls_id, 1)
+        traci.trafficlight.setPhase(tls_id, 2)
     for _ in range(duration):
         traci.simulationStep()
-        time.sleep(0.3)  # Add delay for smoother visualization
+        time.sleep(0.3)
 
 def select_model() -> ModelType:
     """Allow user to select a model from available options."""
@@ -94,12 +107,12 @@ def run():
     try:
         print(f"Starting SUMO with command: {' '.join(sumo_cmd)}")
         traci.start(sumo_cmd)
-        
+        last_phase = None
         while traci.simulation.getMinExpectedNumber() > 0:
             state = get_current_state()
             phase, duration = agent.decide_phase(state)
-            apply_phase(phase, duration)
-            
+            apply_phase(phase, duration, last_phase)
+            last_phase = phase
         print("Simulation completed successfully.")
         
     except traci.exceptions.FatalTraCIError as e:
