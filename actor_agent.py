@@ -73,7 +73,7 @@ class ActorAgent:
 
     def __init__(
         self,
-        model_type: ModelType = ModelType.FALCON,
+        model_type: ModelType,
         device: str = None,
         fixed_duration: int = 20,       # Fixed duration for each phase
         max_llm_failures: int = 3,      # Maximum consecutive LLM failures before switching to fallback
@@ -144,12 +144,15 @@ class ActorAgent:
         """
         Given a state dict, use LLM to decide the next phase.
         Falls back to rule-based agent if LLM fails repeatedly.
-        Includes starvation prevention.
+        After one fallback step, LLM is tried again.
         Returns (phase, duration).
         """
-        # If we're already using fallback, continue with it
+        # If we're using fallback, use it for this step, then reset to try LLM again next time
         if self.using_fallback:
-            return self.fallback_agent.decide_phase(state)
+            phase, duration = self.fallback_agent.decide_phase(state)
+            self.using_fallback = False  # Reset fallback so LLM is tried next time
+            self.consecutive_failures = 0  # Optionally reset failure counter
+            return phase, duration
 
         N = state.get("N", 0)
         E = state.get("E", 0)
@@ -169,7 +172,6 @@ class ActorAgent:
         if match:
             phase = match.group(1)
             self.consecutive_failures = 0  # Reset failure counter on success
-            
             # Check for starvation before returning the phase
             phase = self.check_starvation(phase)
             self.last_phase = phase
@@ -177,12 +179,10 @@ class ActorAgent:
         else:
             print(f">>> Failed to parse LLM reply, got: '{raw_reply}'")
             self.consecutive_failures += 1
-            
             # Check if we should switch to fallback
             if self.consecutive_failures >= self.max_llm_failures:
                 print(">>> Switching to fallback rule-based agent due to repeated LLM failures")
                 self.using_fallback = True
                 return self.fallback_agent.decide_phase(state)
-            
             # If not switching to fallback yet, use rule-based agent for this step
             return self.fallback_agent.decide_phase(state)
