@@ -45,22 +45,22 @@ def run():
     agent = FastRuleAgent()
 
     # Check if SUMO is in PATH, otherwise try common installation paths
-    sumo_binary = "sumo-gui"
+    sumo_binary = "sumo"
     
     # Common SUMO installation paths
     possible_paths = [
-        "sumo-gui",  # If in PATH
-        "/usr/bin/sumo-gui",  # Linux
-        "/usr/local/bin/sumo-gui",  # Linux/Mac
-        "C:\\Program Files (x86)\\Eclipse\\Sumo\\bin\\sumo-gui.exe",  # Windows
-        "C:\\sumo\\bin\\sumo-gui.exe",  # Windows alternative
+        "sumo",  # If in PATH
+        "/usr/bin/sumo",  # Linux
+        "/usr/local/bin/sumo",  # Linux/Mac
+        "C:\\Program Files (x86)\\Eclipse\\Sumo\\bin\\sumo.exe",  # Windows
+        "C:\\sumo\\bin\\sumo.exe",  # Windows alternative
     ]
     
     sumo_found = False
     for path in possible_paths:
         try:
             # Test if the binary exists and is executable
-            if os.path.isfile(path) or path == "sumo-gui":
+            if os.path.isfile(path) or path == "sumo":
                 sumo_binary = path
                 sumo_found = True
                 break

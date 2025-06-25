@@ -5,6 +5,14 @@ import traci
 from model_manager import ModelType, get_available_models
 from actor_agent import ActorAgent
 
+# class FastRuleAgent:
+#     def decide_phase(self, state):
+#         ns = state["N"] + state["S"]
+#         ew = state["E"] + state["W"]
+#         if ns >= ew:
+#             return "GREEN_NORTH_SOUTH", 10
+#         else:
+#             return "GREEN_EAST_WEST", 10
 
 def get_current_state():
     N_queue = traci.edge.getLastStepVehicleNumber("N2C")
@@ -14,7 +22,6 @@ def get_current_state():
     return {"N": N_queue, "E": E_queue, "S": S_queue, "W": W_queue}
 
 def apply_phase(phase: str, duration: int):
-    """Apply the given phase for the specified duration."""
     tls_id = "C"
     if phase == "GREEN_NORTH_SOUTH":
         # If switching from EW to NS, show EW yellow first
@@ -66,22 +73,22 @@ def run():
     )
 
     # Check if SUMO is in PATH, otherwise try common installation paths
-    sumo_binary = "sumo-gui"
+    sumo_binary = "sumo"
     
     # Common SUMO installation paths
     possible_paths = [
-        "sumo-gui",  # If in PATH
-        "/usr/bin/sumo-gui",  # Linux
-        "/usr/local/bin/sumo-gui",  # Linux/Mac
-        "C:\\Program Files (x86)\\Eclipse\\Sumo\\bin\\sumo-gui.exe",  # Windows
-        "C:\\sumo\\bin\\sumo-gui.exe",  # Windows alternative
+        "sumo",  # If in PATH
+        "/usr/bin/sumo",  # Linux
+        "/usr/local/bin/sumo",  # Linux/Mac
+        "C:\\Program Files (x86)\\Eclipse\\Sumo\\bin\\sumo.exe",  # Windows
+        "C:\\sumo\\bin\\sumo.exe",  # Windows alternative
     ]
     
     sumo_found = False
     for path in possible_paths:
         try:
             # Test if the binary exists and is executable
-            if os.path.isfile(path) or path == "sumo-gui":
+            if os.path.isfile(path) or path == "sumo":
                 sumo_binary = path
                 sumo_found = True
                 break
