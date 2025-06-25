@@ -24,12 +24,20 @@ def get_current_state():
 def apply_phase(phase: str, duration: int):
     tls_id = "C"
     if phase == "GREEN_NORTH_SOUTH":
-        traci.trafficlight.setPhase(tls_id, 0)
-    else:
-        traci.trafficlight.setPhase(tls_id, 1)
+        # If switching from EW to NS, show EW yellow first
+        traci.trafficlight.setPhase(tls_id, 3)  # EW yellow (assuming phase 3 is EW yellow)
+        traci.simulationStep()
+        time.sleep(0.5)  # Short delay for yellow
+        traci.trafficlight.setPhase(tls_id, 0)  # NS green
+    else:  # GREEN_EAST_WEST
+        # If switching from NS to EW, show NS yellow first
+        traci.trafficlight.setPhase(tls_id, 1)  # NS yellow (assuming phase 1 is NS yellow)
+        traci.simulationStep()
+        time.sleep(0.5)  # Short delay for yellow
+        traci.trafficlight.setPhase(tls_id, 2)  # EW green
     for _ in range(duration):
         traci.simulationStep()
-        time.sleep(0.3)  # Add delay for smoother visualization
+        time.sleep(0.3)
 
 def select_model() -> ModelType:
     """Allow user to select a model from available options."""
@@ -55,30 +63,32 @@ def run():
     model_type = select_model()
     print(f"\nSelected model: {model_type.name}")
     
-    # Initialize the agent with the selected model
+    # Initialize the agent with the selected model and fallback settings
     agent = ActorAgent(
         model_type=model_type,
         device="cpu",
-        fixed_duration=20        # Fixed duration for each phase
+        fixed_duration=20,        # Fixed duration for each phase
+        max_llm_failures=3,       # Switch to fallback after 3 consecutive failures
+        max_wait_time=60          # Maximum wait time in seconds before forcing a phase change
     )
 
     # Check if SUMO is in PATH, otherwise try common installation paths
-    sumo_binary = "sumo-gui"
+    sumo_binary = "sumo"
     
     # Common SUMO installation paths
     possible_paths = [
-        "sumo-gui",  # If in PATH
-        "/usr/bin/sumo-gui",  # Linux
-        "/usr/local/bin/sumo-gui",  # Linux/Mac
-        "C:\\Program Files (x86)\\Eclipse\\Sumo\\bin\\sumo-gui.exe",  # Windows
-        "C:\\sumo\\bin\\sumo-gui.exe",  # Windows alternative
+        "sumo",  # If in PATH
+        "/usr/bin/sumo",  # Linux
+        "/usr/local/bin/sumo",  # Linux/Mac
+        "C:\\Program Files (x86)\\Eclipse\\Sumo\\bin\\sumo.exe",  # Windows
+        "C:\\sumo\\bin\\sumo.exe",  # Windows alternative
     ]
     
     sumo_found = False
     for path in possible_paths:
         try:
             # Test if the binary exists and is executable
-            if os.path.isfile(path) or path == "sumo-gui":
+            if os.path.isfile(path) or path == "sumo":
                 sumo_binary = path
                 sumo_found = True
                 break
@@ -102,12 +112,33 @@ def run():
         print(f"Starting SUMO with command: {' '.join(sumo_cmd)}")
         traci.start(sumo_cmd)
         
+        # Initialize simulation state tracking
+        simulation_time = 0
+        last_phase = None
+        phase_changes = 0
+        
         while traci.simulation.getMinExpectedNumber() > 0:
             state = get_current_state()
             phase, duration = agent.decide_phase(state)
-            apply_phase(phase, duration)
             
-        print("Simulation completed successfully.")
+            # Track phase changes and simulation time
+            if phase != last_phase:
+                phase_changes += 1
+                print(f"\n>>> Phase change #{phase_changes} at time {simulation_time}s")
+                print(f">>> Switching to {phase}")
+                if agent.using_fallback:
+                    print(">>> Using fallback rule-based agent")
+            
+            # Apply the phase and update simulation time
+            apply_phase(phase, duration)
+            simulation_time += duration
+            last_phase = phase
+            
+        print("\nSimulation completed successfully.")
+        print(f"Total simulation time: {simulation_time}s")
+        print(f"Total phase changes: {phase_changes}")
+        if agent.using_fallback:
+            print("Note: System used fallback rule-based agent during simulation")
         
     except traci.exceptions.FatalTraCIError as e:
         print(f"TraCI Fatal Error: {e}")
